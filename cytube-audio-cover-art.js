@@ -101,22 +101,74 @@ return a}},{key:"addTagReader",value:function(b){u.push(b);return a}},{key:"remo
     function addCoverImage(src) {
         let srcUrl = new URL(src);
         let srcExtension = srcUrl.pathname.split('.').reverse()[0];
+        
         if (srcExtension === "mp3" || srcExtension === "ogg") {
+            let srcParentDir = srcUrl;
+            srcParentDir.pathname = srcParentDir.pathname.split('/').slice(0,-1).join('/');
+            let embeddedImgGet = null;
+            let embeddedImgGot = new Promise(resolve => { embeddedImgGet = resolve });
+            let coverJpgGet = null;
+            let coverJpgGot = new Promise(resolve => { coverJpgGet = resolve });
+            let coverPngGet = null;
+            let coverPngGot = new Promise(resolve => { coverPngGet = resolve });
+            let coverGifGet = null;
+            let coverGifGot = new Promise(resolve => { coverGifGet = resolve });
+            let albumTitleJpgGet = null;
+            let albumTitleJpgGot = new Promise(resolve => { albumTitleJpgGet = resolve });
+            let albumTitlePngGet = null;
+            let albumTitlePngGot = new Promise(resolve => { albumTitlePngGet = resolve });
+            let albumTitleGifGet = null;
+            let albumTitleGifGot = new Promise(resolve => { albumTitleGifGet = resolve });
             jsmediatags.read(src, {
                 onSuccess: data => {
                     if (data?.tags?.picture) {
-                        let coverImg = document.createElement("img");
-                        let coverParent = document.querySelector("#ytapiplayer");
                         let coverData = new Uint8Array(data.tags.picture.data);
                         let coverBlob = new Blob([coverData], { type: data.tags.picture.format });
                         let coverBlobUrl = URL.createObjectURL(coverBlob);
-
-                        coverImg.setAttribute("id", "audio-cover");
-                        coverImg.setAttribute("src", coverBlobUrl);
-
-                        coverParent.appendChild(coverImg);
+                        embeddedImgGet(coverBlobUrl);
+                    } else if (data?.tags?.album) {
+                        let albumTitle = encodeURIComponent(data.tags.album);
+                        fetch(srcParentDir + "/" + albumTitle + ".jpg", {method: "HEAD"}).then(response => {
+                            if (response.status === 200) {
+                                albumTitleJpgGet(response.url);
+                            }
+                        });
+                        fetch(srcParentDir + "/" + albumTitle + ".png", {method: "HEAD"}).then(response => {
+                            if (response.status === 200) {
+                                albumTitlePngGet(response.url);
+                            }
+                        });
+                        fetch(srcParentDir + "/" + albumTitle + ".gif", {method: "HEAD"}).then(response => {
+                            if (response.status === 200) {
+                                albumTitleGifGet(response.url);
+                            }
+                        });
                     }
                 }
+            });
+
+            fetch(srcParentDir + "/" + "cover.jpg", {method: "HEAD"}).then(response => {
+                if (response.status === 200) {
+                    coverJpgGet(response.url);
+                }
+            });
+            fetch(srcParentDir + "/" + "cover.png", {method: "HEAD"}).then(response => {
+                if (response.status === 200) {
+                    coverPngGet(response.url);
+                }
+            });
+            fetch(srcParentDir + "/" + "cover.gif", {method: "HEAD"}).then(response => {
+                if (response.status === 200) {
+                    coverGifGet(response.url);
+                }
+            });
+
+            Promise.any([embeddedImgGot, coverJpgGot, coverPngGot, coverGifGot, albumTitleJpgGot, albumTitlePngGot, albumTitleGifGot]).then((srcUrl) => {
+                let coverImg = document.createElement("img");
+                let coverParent = document.querySelector("#ytapiplayer");
+                coverImg.setAttribute("id", "audio-cover");
+                coverImg.setAttribute("src", srcUrl);
+                coverParent.appendChild(coverImg);
             });
         }
     }
