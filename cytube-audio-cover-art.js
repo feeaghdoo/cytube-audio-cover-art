@@ -98,6 +98,14 @@ return a}},{key:"addTagReader",value:function(b){u.push(b);return a}},{key:"remo
 {},[15])(15)});
 
 (function () {
+    function createCoverImage(imageSrcUrl) {
+        let coverImg = document.createElement("img");
+        let coverParent = document.querySelector("#ytapiplayer");
+        coverImg.setAttribute("id", "audio-cover");
+        coverImg.setAttribute("src", imageSrcUrl);
+        coverParent.appendChild(coverImg);
+    }
+    
     function addCoverImage(src) {
         let srcUrl = new URL(src);
         let srcExtension = srcUrl.pathname.split('.').reverse()[0];
@@ -113,6 +121,9 @@ return a}},{key:"addTagReader",value:function(b){u.push(b);return a}},{key:"remo
             let coverPngGot = new Promise(resolve => { coverPngGet = resolve });
             let coverGifGet = null;
             let coverGifGot = new Promise(resolve => { coverGifGet = resolve });
+            let coverTxtGet = null;
+            let coverTxtNotGet = null;
+            let coverTxtGot = new Promise((resolve, reject) => { coverTxtGet = resolve; coverTxtNotGet = reject; });
             let albumTitleJpgGet = null;
             let albumTitleJpgGot = new Promise(resolve => { albumTitleJpgGet = resolve });
             let albumTitlePngGet = null;
@@ -162,13 +173,23 @@ return a}},{key:"addTagReader",value:function(b){u.push(b);return a}},{key:"remo
                     coverGifGet(response.url);
                 }
             });
+            
+            fetch(srcParentDir + "/" + "cover.txt").then(response => {
+                if (response.status === 200) {
+                    return response.text();
+                } else {
+                    throw "Failed to load cover.txt";
+                }
+            }).then(response => {
+                response = response.trim().split('\n');
+                return coverTxtGet(srcParentDir + "/" + response[Math.floor(Math.random()*response.length)]);
+            }).catch(() => {
+                return coverTxtNotGet();
+            });
 
-            Promise.any([embeddedImgGot, coverJpgGot, coverPngGot, coverGifGot, albumTitleJpgGot, albumTitlePngGot, albumTitleGifGot]).then((srcUrl) => {
-                let coverImg = document.createElement("img");
-                let coverParent = document.querySelector("#ytapiplayer");
-                coverImg.setAttribute("id", "audio-cover");
-                coverImg.setAttribute("src", srcUrl);
-                coverParent.appendChild(coverImg);
+            //ensure that cover.txt has precidence, then the others
+            coverTxtGot.then(createCoverImage, () => {
+                Promise.any([embeddedImgGot, coverJpgGot, coverPngGot, coverGifGot, albumTitleJpgGot, albumTitlePngGot, albumTitleGifGot]).then(createCoverImage)
             });
         }
     }
