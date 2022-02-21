@@ -111,7 +111,7 @@ return a}},{key:"addTagReader",value:function(b){u.push(b);return a}},{key:"remo
         let srcExtension = srcUrl.pathname.split('.').reverse()[0];
         
         if (srcExtension === "mp3" || srcExtension === "ogg") {
-            let srcParentDir = srcUrl;
+            let srcParentDir = new URL(srcUrl);
             srcParentDir.pathname = srcParentDir.pathname.split('/').slice(0,-1).join('/');
             let embeddedImgGet = null;
             let embeddedImgGot = new Promise(resolve => { embeddedImgGet = resolve });
@@ -183,9 +183,11 @@ return a}},{key:"addTagReader",value:function(b){u.push(b);return a}},{key:"remo
             }).then(response => {
                 let srcFilePath = srcUrl.pathname.split('/').reverse()[0];
                 response = response.trim().split('\n');
-                let fileSpecificResponse = response.filter(r => r.trim().startsWith(srcFilePath + ":"));
+                let fileSpecificResponse = response.filter(r => r.startsWith(decodeURI(srcFilePath) + ":"));
                 if (fileSpecificResponse.length > 0) {
-                    response = fileSpecificResponse;
+                    response = fileSpecificResponse.map(r => r.substr(decodeURI(srcFilePath).length + 1));
+                } else {
+                    response = response.filter(r => r.indexOf(":") === -1);
                 }
                 return coverTxtGet(srcParentDir + "/" + response[Math.floor(Math.random()*response.length)]);
             }).catch(() => {
