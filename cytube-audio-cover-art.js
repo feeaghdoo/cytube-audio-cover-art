@@ -181,7 +181,12 @@ return a}},{key:"addTagReader",value:function(b){u.push(b);return a}},{key:"remo
                     throw "Failed to load cover.txt";
                 }
             }).then(response => {
+                let srcFilePath = srcUrl.pathname.split('/').reverse()[0];
                 response = response.trim().split('\n');
+                let fileSpecificResponse = response.filter(r => r.trim().startsWith(srcFilePath + ":"));
+                if (fileSpecificResponse.length > 0) {
+                    response = fileSpecificResponse;
+                }
                 return coverTxtGet(srcParentDir + "/" + response[Math.floor(Math.random()*response.length)]);
             }).catch(() => {
                 return coverTxtNotGet();
